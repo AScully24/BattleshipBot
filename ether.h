@@ -1,10 +1,9 @@
-/* Taken from the Linux networking header files, with slight modifications */
+///* Taken from the Linux networking header files, with slight modifications */
 
 #ifndef __ETHER_H
 #define __ETHER_H
 
-#include "pcap.h"
-
+//#include "pcap.h"
 /*
  *      IEEE 802.3 Ethernet magic constants.  The frame sizes omit the preamble
  *      and FCS/CRC (frame check sequence).

@@ -1,22 +1,18 @@
-﻿Build started 31/03/2014 12:18:42.
-     1>Project "C:\Users\Scully\Documents\Computer Science\Computer and Network Systems\Assignment 2\BattleshipBot\BattleshipBot\BattleshipBot\BattleshipBot.vcxproj" on node 2 (Build target(s)).
+﻿Build started 11/02/2015 13:59:55.
+     1>Project "H:\My Documents\GitHub\BattleshipBot\BattleshipBot.vcxproj" on node 2 (Build target(s)).
      1>ClCompile:
-         C:\Program Files (x86)\Microsoft Visual Studio 11.0\VC\bin\CL.exe /c /I"C:\Program Files (x86)\WinPcap\WpdPack\Include" /I"C:\Program Files (x86)\WinPcap\WpdPack\Include" /ZI /nologo /W3 /WX- /sdl /Od /Oy- /D WIN32 /D _DEBUG /D _CONSOLE /D _CRT_SECURE_NO_WARNINGS /D _UNICODE /D UNICODE /Gm /EHsc /RTC1 /MDd /GS /fp:precise /Zc:wchar_t /Zc:forScope /Yu"stdafx.h" /Fp"Debug\BattleshipBot.pch" /Fo"Debug\\" /Fd"Debug\vc110.pdb" /Gd /TP /analyze- /errorReport:prompt BattleshipBot.cpp
+         D:\Program Files\Microsoft Visual Studio 11.0\VC\bin\CL.exe /c /I"C:\Program Files (x86)\WinPcap\WpdPack\Include" /ZI /nologo /W3 /WX- /sdl /Od /Oy- /D WIN32 /D _DEBUG /D _CONSOLE /D _CRT_SECURE_NO_WARNINGS /D _UNICODE /D UNICODE /Gm /EHsc /RTC1 /MDd /GS /fp:precise /Zc:wchar_t /Zc:forScope /Yu"stdafx.h" /Fp"Debug\BattleshipBot.pch" /Fo"Debug\\" /Fd"Debug\vc110.pdb" /Gd /TP /analyze- /errorReport:prompt BattleshipBot.cpp
          BattleshipBot.cpp
-     1>c:\users\scully\documents\computer science\computer and network systems\assignment 2\battleshipbot\battleshipbot\battleshipbot\utils.h(14): warning C4005: '_CRT_SECURE_NO_WARNINGS' : macro redefinition
+     1>h:\my documents\github\battleshipbot\utils.h(14): warning C4005: '_CRT_SECURE_NO_WARNINGS' : macro redefinition
                  command-line arguments :  see previous definition of '_CRT_SECURE_NO_WARNINGS'
-     1>c:\users\scully\documents\computer science\computer and network systems\assignment 2\battleshipbot\battleshipbot\battleshipbot\battleshipbot.cpp(184): warning C4101: 'arp_reply_victim2' : unreferenced local variable
-     1>c:\users\scully\documents\computer science\computer and network systems\assignment 2\battleshipbot\battleshipbot\battleshipbot\battleshipbot.cpp(181): warning C4101: 'victim1_mac' : unreferenced local variable
-     1>c:\users\scully\documents\computer science\computer and network systems\assignment 2\battleshipbot\battleshipbot\battleshipbot\battleshipbot.cpp(183): warning C4101: 'arp_reply_victim1' : unreferenced local variable
-     1>c:\users\scully\documents\computer science\computer and network systems\assignment 2\battleshipbot\battleshipbot\battleshipbot\battleshipbot.cpp(433): warning C4390: ';' : empty controlled statement found; is this the intent?
-     1>c:\users\scully\documents\computer science\computer and network systems\assignment 2\battleshipbot\battleshipbot\battleshipbot\battleshipbot.cpp(522): warning C4244: 'initializing' : conversion from 'double' to 'long', possible loss of data
+     1>h:\my documents\github\battleshipbot\battleshipbot.cpp(219): warning C4390: ';' : empty controlled statement found; is this the intent?
+     1>h:\my documents\github\battleshipbot\battleshipbot.cpp(308): warning C4244: 'initializing' : conversion from 'double' to 'long', possible loss of data
        Link:
-         C:\Program Files (x86)\Microsoft Visual Studio 11.0\VC\bin\link.exe /ERRORREPORT:PROMPT /OUT:"C:\Users\Scully\Documents\Computer Science\Computer and Network Systems\Assignment 2\BattleshipBot\BattleshipBot\Debug\BattleshipBot.exe" /INCREMENTAL /NOLOGO kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib ws2_32.lib "C:\Program Files (x86)\WinPcap\WpdPack\Lib\wpcap.lib" iphlpapi.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /MANIFEST /MANIFESTUAC:"level='asInvoker' uiAccess='false'" /manifest:embed /DEBUG /PDB:"C:\Users\Scully\Documents\Computer Science\Computer and Network Systems\Assignment 2\BattleshipBot\BattleshipBot\Debug\BattleshipBot.pdb" /SUBSYSTEM:CONSOLE /TLBID:1 /DYNAMICBASE /NXCOMPAT /IMPLIB:"C:\Users\Scully\Documents\Computer Science\Computer and Network Systems\Assignment 2\BattleshipBot\BattleshipBot\Debug\BattleshipBot.lib" /MACHINE:X86 Debug\arp_helper.obj
-         Debug\BattleshipBot.obj
+         D:\Program Files\Microsoft Visual Studio 11.0\VC\bin\link.exe /ERRORREPORT:PROMPT /OUT:"H:\My Documents\GitHub\BattleshipBot\Debug\BattleshipBot.exe" /INCREMENTAL /NOLOGO kernel32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib ws2_32.lib iphlpapi.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /MANIFEST /MANIFESTUAC:"level='asInvoker' uiAccess='false'" /manifest:embed /DEBUG /PDB:"H:\My Documents\GitHub\BattleshipBot\Debug\BattleshipBot.pdb" /SUBSYSTEM:CONSOLE /TLBID:1 /DYNAMICBASE /NXCOMPAT /IMPLIB:"H:\My Documents\GitHub\BattleshipBot\Debug\BattleshipBot.lib" /MACHINE:X86 Debug\BattleshipBot.obj
          Debug\stdafx.obj
-         BattleshipBot.vcxproj -> C:\Users\Scully\Documents\Computer Science\Computer and Network Systems\Assignment 2\BattleshipBot\BattleshipBot\Debug\BattleshipBot.exe
-     1>Done Building Project "C:\Users\Scully\Documents\Computer Science\Computer and Network Systems\Assignment 2\BattleshipBot\BattleshipBot\BattleshipBot\BattleshipBot.vcxproj" (Build target(s)).
+         BattleshipBot.vcxproj -> H:\My Documents\GitHub\BattleshipBot\Debug\BattleshipBot.exe
+     1>Done Building Project "H:\My Documents\GitHub\BattleshipBot\BattleshipBot.vcxproj" (Build target(s)).
 
 Build succeeded.
 
-Time Elapsed 00:00:07.72
+Time Elapsed 00:00:02.89

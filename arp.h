@@ -3,7 +3,6 @@
 #ifndef __ARP_H
 #define __ARP_H
 
-#include "pcap.h"
 
 /* This structure defines an ethernet arp header.  */
 

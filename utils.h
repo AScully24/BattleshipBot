@@ -13,7 +13,6 @@ int get_if_mac(const char *dev_name, u_char *mac_addr);
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 #define _CRT_SECURE_NO_WARNINGS
 
-#include "pcap.h"
 #include "ether.h"
 //#include "utils.h"
 

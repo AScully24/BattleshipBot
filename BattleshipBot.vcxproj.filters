@@ -44,8 +44,5 @@
     <ClCompile Include="BattleshipBot.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="arp_helper.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
   </ItemGroup>
 </Project>
