@@ -108,6 +108,7 @@ int moveX;
 int moveY;
 
 bool setFlag = true;
+bool isLeader = false;
 int new_flag = 0;
 
 void fire_at_ship(int X, int Y);
@@ -172,32 +173,44 @@ bool sortClosestShip(ShipDetails lhs, ShipDetails rhs) { return lhs.distance < r
 bool sortIsAlly(ShipDetails lhs, ShipDetails rhs) { return lhs.isAlly < rhs.isAlly; }
 
 void leaderSetup(){
-	char buffer[MAX_BUFFER_SIZE];
+	char recvBuffer[MAX_BUFFER_SIZE];
 	int  len = sizeof(SOCKADDR);
 	char chr, *p;
-	int ally1,ally2,ally3;
+	int ally1 = 0,ally2 = 0,ally3 = 0;
+	char replyBuffer[4] = "0 1";
 
 	while (true)
 	{
 		p = ::inet_ntoa(receive_addr.sin_addr);
-		if (recvfrom(sock_recv, buffer, sizeof(buffer)-1, 0, (SOCKADDR *)&receive_addr, &len) != SOCKET_ERROR)
+		if (recvfrom(sock_recv, recvBuffer, sizeof(recvBuffer)-1, 0, (SOCKADDR *)&receive_addr, &len) != SOCKET_ERROR)
 		{
-			if (sscanf_s(buffer,"1 %d", ally1) == 4){
-				//allyAddrArray[0].sin_addr.s_addr = inet_ntoa(receive_addr.sin_addr);
+			if (sscanf_s(recvBuffer,"1 %d", ally1) == 4){
 				allyAddrArray[0].sin_addr.s_addr = receive_addr.sin_addr.s_addr;
+
+				if(sendto(sock_send, sendBuffer, strlen(sendBuffer), 0, (SOCKADDR *)&allyAddrArray[0], sizeof(SOCKADDR)) < 0)
+							printf("Send Error to id %d\n", 1);
 			}
-			if (sscanf_s(buffer,"2 %d", ally2) == 4){
+			if (sscanf_s(recvBuffer,"2 %d", ally2) == 4){
 				allyAddrArray[1].sin_addr.s_addr = receive_addr.sin_addr.s_addr;
+				if(sendto(sock_send, sendBuffer, strlen(sendBuffer), 0, (SOCKADDR *)&allyAddrArray[1], sizeof(SOCKADDR)) < 0)
+							printf("Send Error to id %d\n", 2);
 			}
-			if (sscanf_s(buffer,"3 %d", ally3) == 4){
+			if (sscanf_s(recvBuffer,"3 %d", ally3) == 4){
 				allyAddrArray[2].sin_addr.s_addr = receive_addr.sin_addr.s_addr;
+				if(sendto(sock_send, sendBuffer, strlen(sendBuffer), 0, (SOCKADDR *)&allyAddrArray[2], sizeof(SOCKADDR)) < 0)
+							printf("Send Error to id %d\n", 3);
 			}
 		}
 
 		// If all allies send info, then time to exit and begin combat. One last message is sent to tell them to begin combat.
 		if (ally1 !=0 && ally2 !=0 && ally3 !=0)
 		{
-
+			strcpy(replyBuffer,"0 2");
+			for (int i = 0; i < MAX_ALLIES; i++)
+			{
+				if(sendto(sock_send, sendBuffer, strlen(sendBuffer), 0, (SOCKADDR *)&allyAddrArray[i], sizeof(SOCKADDR)) < 0)
+							printf("Send Error to id %d\n", 3);
+			}
 		}
 	}
 }
@@ -214,7 +227,11 @@ void setupAllyAddressData()
 		//allyAddrArray[i].sin_addr.s_addr = inet_addr(allyIPArray[i].c_str());
 		allyAddrArray[i].sin_port = htons(PORT_RECEIVE);
 	}
-	leaderSetup();
+	if (isLeader)
+	{
+		leaderSetup();
+	}
+	
 }
 
 //  Encrypts my flag based on my x and y location.
