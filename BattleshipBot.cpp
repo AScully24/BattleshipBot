@@ -32,6 +32,7 @@
 //#define IP_ADDRESS_SERVER "164.11.80.70"
 //
 #define IP_ADDRESS_SERVER "164.11.174.44"
+#define LEADER_IP "164.11.157.141"
 
 #define PORT_SEND	 1924 // We define a port that we are going to use.
 #define PORT_RECEIVE 1925 // We define a port that we are going to use.
@@ -87,7 +88,7 @@ SOCKET sock_recv;  // This is our socket, it is the handle to the IO address to 
 WSADATA data;
 
 char InputBuffer [MAX_BUFFER_SIZE];
-char botID[1] = "";
+char botID;
 
 int myX;
 int myY;
@@ -181,25 +182,31 @@ void leaderSetup(){
 	char chr, *p;
 	int ally1 = 0,ally2 = 0,ally3 = 0;
 	char replyBuffer[4] = "0 1";
-	char temp[1];
+	char temp[30];
 
 	while (true)
 	{
 		p = ::inet_ntoa(receive_addr.sin_addr);
 		if (recvfrom(sock_recv, recvBuffer, sizeof(recvBuffer)-1, 0, (SOCKADDR *)&receive_addr, &len) != SOCKET_ERROR)
 		{
-			if (sscanf_s(recvBuffer,"%s", &temp) == 1){
+			printf("buffer is %s",recvBuffer);
+			//if (sscanf_s(recvBuffer,"%s", &temp) == 1){
+			if (sprintf_s(recvBuffer,"%s", &temp) == 2){
+				printf("Temp is %s",temp);
 				if (strcmp(temp, "1") == 0){
 					ally1 = 1;
 					allyAddrArray[0].sin_addr.s_addr = receive_addr.sin_addr.s_addr;
+					printf("Recieved 1\n");
 				}
 				else if(strcmp(temp, "2") ==0){
 					ally2 = 1;
 					allyAddrArray[1].sin_addr.s_addr = receive_addr.sin_addr.s_addr;
+					printf("Recieved 2\n");
 				}
 				else if (strcmp(temp, "3")==0){
 					ally3 = 1;
 					allyAddrArray[2].sin_addr.s_addr = receive_addr.sin_addr.s_addr;
+					printf("Recieved 3\n");
 				}
 
 			}
@@ -211,25 +218,30 @@ void leaderSetup(){
 			char ipAddresses[200];
 			for (int i = 0; i < MAX_ALLIES; i++)
 			{
-				if (i == 0)
-					sprintf_s(ipAddresses,"IPInfo %s, %s",allyAddrArray[1].sin_addr.s_addr,allyAddrArray[2].sin_addr.s_addr);
-				if (i == 1)
-					sprintf_s(ipAddresses,"IPInfo %s, %s",allyAddrArray[0].sin_addr.s_addr,allyAddrArray[2].sin_addr.s_addr);
-				if (i == 2)
+				if (i == 0){
+					sprintf_s(ipAddresses,"IPInfo %s, %s",&allyAddrArray[1].sin_addr.s_addr,&allyAddrArray[2].sin_addr.s_addr);
+					
+				}
+				if (i == 1){
+					sprintf_s(ipAddresses,"IPInfo %s, %s",&allyAddrArray[0].sin_addr.s_addr,&allyAddrArray[2].sin_addr.s_addr);
+				}
+				if (i == 2){
 					sprintf_s(ipAddresses,"IPInfo %s, %s",allyAddrArray[0].sin_addr.s_addr,allyAddrArray[1].sin_addr.s_addr);
+				}
 
 				if(sendto(sock_send, ipAddresses, strlen(sendBuffer), 0, (SOCKADDR *)&allyAddrArray[i], sizeof(SOCKADDR)) < 0)
 					printf("Send Error to id %d\n", 3);
 			}
+			char tempThing[30];
+
+			for (int i = 0; i < MAX_ALLIES; i++)
+			{
+				strcpy(tempThing,inet_ntoa(allyAddrArray[i].sin_addr));
+				strcat(allyShipArray[0].recvDataStruct, tempThing);
+			}
 		}
 
-		char tempThing[30];
 
-		for (int i = 0; i < MAX_ALLIES; i++)
-		{
-			strcpy(tempThing,inet_ntoa(allyAddrArray[i].sin_addr));
-			strcat(allyShipArray[0].recvDataStruct, tempThing);
-		}
 	}
 }
 
@@ -238,23 +250,27 @@ void soldierSetup(){
 	int  len = sizeof(SOCKADDR);
 	char chr, *p;
 	int ally1 = 0,ally2 = 0,ally3 = 0;
-	char replyBuffer[4] = "0 1";
+	char replyBuffer[4];
+	replyBuffer[0] = botID;
+	strcpy(sendBuffer,replyBuffer);
+	printf("Sending data to leader. \n");
+	//std::cin >>allyIPArray[0];
 
-	printf("Input the leaders IP: ");
-	std::cin >>allyIPArray[0];
-
-	allyAddrArray[0].sin_addr.s_addr = inet_addr(allyIPArray[0].c_str());
+	//allyAddrArray[0].sin_addr.s_addr = inet_addr(allyIPArray[0].c_str());
+	allyAddrArray[0].sin_addr.s_addr = inet_addr(LEADER_IP);
 
 	while (true)
 	{
 		p = ::inet_ntoa(receive_addr.sin_addr);
-		if(sendto(sock_send, sendBuffer, strlen(botID), 0, (SOCKADDR *)&allyAddrArray[0], sizeof(SOCKADDR)) < 0)
+		if(sendto(sock_send, sendBuffer, strlen(replyBuffer), 0, (SOCKADDR *)&allyAddrArray[0], sizeof(SOCKADDR)) < 0)
 			printf("Send Error to id %d\n", 3);
 
 		if (recvfrom(sock_recv, recvBuffer, sizeof(recvBuffer)-1, 0, (SOCKADDR *)&receive_addr, &len) != SOCKET_ERROR)
 		{
-			if(sprintf_s(recvBuffer,"IPInfo %s, %s",allyAddrArray[1].sin_addr.s_addr,allyAddrArray[2].sin_addr.s_addr)== 3)
+			if(sprintf_s(recvBuffer,"IPInfo %s, %s",allyAddrArray[1].sin_addr.s_addr,allyAddrArray[2].sin_addr.s_addr)== 3){
+				printf("Recieved data from leader. \n");
 				break;
+			}
 		}
 	}
 
@@ -919,9 +935,10 @@ int _tmain(int argc, _TCHAR* argv[])
 
 	// Sets wether the bot is a leader or a soldier
 	printf("Input your bot ID: ");
-	std::cin >> botID;
+	
+	botID = getchar();
 
-	if (strcmp(botID,"0") == 0)
+	if (botID == '0')
 		isLeader = true;
 	else
 		isLeader=false;
