@@ -28,10 +28,10 @@
 #define STUDENT_FIRSTNAME	"Anthony"
 #define STUDENT_FAMILYNAME	"Scully"
 
-//
-#define IP_ADDRESS_SERVER	"127.0.0.1"
+//#define IP_ADDRESS_SERVER	"127.0.0.1"
 //#define IP_ADDRESS_SERVER "164.11.80.70"
-//#define IP_ADDRESS_SERVER "164.11.80.55"
+//
+#define IP_ADDRESS_SERVER "164.11.174.44"
 
 #define PORT_SEND	 1924 // We define a port that we are going to use.
 #define PORT_RECEIVE 1925 // We define a port that we are going to use.
@@ -189,15 +189,15 @@ void leaderSetup(){
 		if (recvfrom(sock_recv, recvBuffer, sizeof(recvBuffer)-1, 0, (SOCKADDR *)&receive_addr, &len) != SOCKET_ERROR)
 		{
 			if (sscanf_s(recvBuffer,"%s", &temp) == 1){
-				if (strcmp(temp, "1")){
+				if (strcmp(temp, "1") == 0){
 					ally1 = 1;
 					allyAddrArray[0].sin_addr.s_addr = receive_addr.sin_addr.s_addr;
 				}
-				else if(strcmp(temp, "2")){
+				else if(strcmp(temp, "2") ==0){
 					ally2 = 1;
 					allyAddrArray[1].sin_addr.s_addr = receive_addr.sin_addr.s_addr;
 				}
-				else if (strcmp(temp, "3")){
+				else if (strcmp(temp, "3")==0){
 					ally3 = 1;
 					allyAddrArray[2].sin_addr.s_addr = receive_addr.sin_addr.s_addr;
 				}
@@ -921,7 +921,7 @@ int _tmain(int argc, _TCHAR* argv[])
 	printf("Input your bot ID: ");
 	std::cin >> botID;
 
-	if (strcmp(botID,"0"))
+	if (strcmp(botID,"0") == 0)
 		isLeader = true;
 	else
 		isLeader=false;
