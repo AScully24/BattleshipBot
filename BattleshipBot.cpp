@@ -87,6 +87,7 @@ SOCKET sock_recv;  // This is our socket, it is the handle to the IO address to 
 WSADATA data;
 
 char InputBuffer [MAX_BUFFER_SIZE];
+char botID[1] = "";
 
 int myX;
 int myY;
@@ -149,6 +150,8 @@ struct ShipDetails
 	int numberOfShips;
 	long distance;
 	bool isAlly;
+	char recvDataStruct[30];
+	int recvBufSize;
 };
 
 // General use variables for solo use.
@@ -178,48 +181,96 @@ void leaderSetup(){
 	char chr, *p;
 	int ally1 = 0,ally2 = 0,ally3 = 0;
 	char replyBuffer[4] = "0 1";
+	char temp[1];
 
 	while (true)
 	{
 		p = ::inet_ntoa(receive_addr.sin_addr);
 		if (recvfrom(sock_recv, recvBuffer, sizeof(recvBuffer)-1, 0, (SOCKADDR *)&receive_addr, &len) != SOCKET_ERROR)
 		{
-			if (sscanf_s(recvBuffer,"1 %d", ally1) == 4){
-				allyAddrArray[0].sin_addr.s_addr = receive_addr.sin_addr.s_addr;
+			if (sscanf_s(recvBuffer,"%s", &temp) == 1){
+				if (strcmp(temp, "1")){
+					ally1 = 1;
+					allyAddrArray[0].sin_addr.s_addr = receive_addr.sin_addr.s_addr;
+				}
+				else if(strcmp(temp, "2")){
+					ally2 = 1;
+					allyAddrArray[1].sin_addr.s_addr = receive_addr.sin_addr.s_addr;
+				}
+				else if (strcmp(temp, "3")){
+					ally3 = 1;
+					allyAddrArray[2].sin_addr.s_addr = receive_addr.sin_addr.s_addr;
+				}
 
-				if(sendto(sock_send, sendBuffer, strlen(sendBuffer), 0, (SOCKADDR *)&allyAddrArray[0], sizeof(SOCKADDR)) < 0)
-							printf("Send Error to id %d\n", 1);
-			}
-			if (sscanf_s(recvBuffer,"2 %d", ally2) == 4){
-				allyAddrArray[1].sin_addr.s_addr = receive_addr.sin_addr.s_addr;
-				if(sendto(sock_send, sendBuffer, strlen(sendBuffer), 0, (SOCKADDR *)&allyAddrArray[1], sizeof(SOCKADDR)) < 0)
-							printf("Send Error to id %d\n", 2);
-			}
-			if (sscanf_s(recvBuffer,"3 %d", ally3) == 4){
-				allyAddrArray[2].sin_addr.s_addr = receive_addr.sin_addr.s_addr;
-				if(sendto(sock_send, sendBuffer, strlen(sendBuffer), 0, (SOCKADDR *)&allyAddrArray[2], sizeof(SOCKADDR)) < 0)
-							printf("Send Error to id %d\n", 3);
 			}
 		}
 
 		// If all allies send info, then time to exit and begin combat. One last message is sent to tell them to begin combat.
 		if (ally1 !=0 && ally2 !=0 && ally3 !=0)
 		{
-			strcpy(replyBuffer,"0 2");
+			char ipAddresses[200];
 			for (int i = 0; i < MAX_ALLIES; i++)
 			{
-				if(sendto(sock_send, sendBuffer, strlen(sendBuffer), 0, (SOCKADDR *)&allyAddrArray[i], sizeof(SOCKADDR)) < 0)
-							printf("Send Error to id %d\n", 3);
+				if (i == 0)
+					sprintf_s(ipAddresses,"IPInfo %s, %s",allyAddrArray[1].sin_addr.s_addr,allyAddrArray[2].sin_addr.s_addr);
+				if (i == 1)
+					sprintf_s(ipAddresses,"IPInfo %s, %s",allyAddrArray[0].sin_addr.s_addr,allyAddrArray[2].sin_addr.s_addr);
+				if (i == 2)
+					sprintf_s(ipAddresses,"IPInfo %s, %s",allyAddrArray[0].sin_addr.s_addr,allyAddrArray[1].sin_addr.s_addr);
+
+				if(sendto(sock_send, ipAddresses, strlen(sendBuffer), 0, (SOCKADDR *)&allyAddrArray[i], sizeof(SOCKADDR)) < 0)
+					printf("Send Error to id %d\n", 3);
 			}
+		}
+
+		char tempThing[30];
+
+		for (int i = 0; i < MAX_ALLIES; i++)
+		{
+			strcpy(tempThing,inet_ntoa(allyAddrArray[i].sin_addr));
+			strcat(allyShipArray[0].recvDataStruct, tempThing);
 		}
 	}
 }
 
+void soldierSetup(){
+	char recvBuffer[MAX_BUFFER_SIZE];
+	int  len = sizeof(SOCKADDR);
+	char chr, *p;
+	int ally1 = 0,ally2 = 0,ally3 = 0;
+	char replyBuffer[4] = "0 1";
+
+	printf("Input the leaders IP: ");
+	std::cin >>allyIPArray[0];
+
+	allyAddrArray[0].sin_addr.s_addr = inet_addr(allyIPArray[0].c_str());
+
+	while (true)
+	{
+		p = ::inet_ntoa(receive_addr.sin_addr);
+		if(sendto(sock_send, sendBuffer, strlen(botID), 0, (SOCKADDR *)&allyAddrArray[0], sizeof(SOCKADDR)) < 0)
+			printf("Send Error to id %d\n", 3);
+
+		if (recvfrom(sock_recv, recvBuffer, sizeof(recvBuffer)-1, 0, (SOCKADDR *)&receive_addr, &len) != SOCKET_ERROR)
+		{
+			if(sprintf_s(recvBuffer,"IPInfo %s, %s",allyAddrArray[1].sin_addr.s_addr,allyAddrArray[2].sin_addr.s_addr)== 3)
+				break;
+		}
+	}
+
+	char tempThing[30];
+
+	for (int i = 0; i < MAX_ALLIES; i++)
+	{
+		strcpy(tempThing,inet_ntoa(allyAddrArray[i].sin_addr));
+		strcat(allyShipArray[0].recvDataStruct, tempThing);
+	}
+}
+
+
 // Creates all the address data for communicating with allies.
 void setupAllyAddressData()
 {
-
-	
 	for (int i = 0; i < MAX_ALLIES; i++)
 	{
 		memset(&allyAddrArray[i], 0, sizeof(SOCKADDR_IN));
@@ -227,11 +278,11 @@ void setupAllyAddressData()
 		//allyAddrArray[i].sin_addr.s_addr = inet_addr(allyIPArray[i].c_str());
 		allyAddrArray[i].sin_port = htons(PORT_RECEIVE);
 	}
+
 	if (isLeader)
-	{
 		leaderSetup();
-	}
-	
+	else
+		soldierSetup();
 }
 
 //  Encrypts my flag based on my x and y location.
@@ -434,34 +485,38 @@ int getCurrentLocation()
 // Finds the closest location ID from my ships current location and move tot that location.
 void setNextLocation(bool respawn)
 {
-	int currentLocation = getCurrentLocation();
-	long lowestDistance = LONG_MAX,distance;
-	if ((currentLocation == nextLocation && currentLocation != MAX_LOCATIONS) || respawn) // Only looks for the next location if the bot has arrived at one of the designated locations already.
+	if (isLeader)
 	{
-		for (int i = 0; i < MAX_LOCATIONS; i++)
+		int currentLocation = getCurrentLocation();
+		long lowestDistance = LONG_MAX,distance;
+		if ((currentLocation == nextLocation && currentLocation != MAX_LOCATIONS) || respawn) // Only looks for the next location if the bot has arrived at one of the designated locations already.
 		{
-			distance = getDistance(myX,myY,movementLocations[i].x,movementLocations[i].y); // Replace with your own get distance method
+			for (int i = 0; i < MAX_LOCATIONS; i++)
+			{
+				distance = getDistance(myX,myY,movementLocations[i].x,movementLocations[i].y); // Replace with your own get distance method
 
-			if (respawn)
-			{
-				if (distance < lowestDistance)
+				if (respawn)
 				{
-					nextLocation = i;
-					lowestDistance = distance;
+					if (distance < lowestDistance)
+					{
+						nextLocation = i;
+						lowestDistance = distance;
+					}
 				}
-			}
-			else
-			{
-				int locationReferenceDifference = i - currentLocation;
-				// Checks if the location is closer than the previously noted location.
-				if (distance < lowestDistance && (locationReferenceDifference == 1 || locationReferenceDifference == -(MAX_LOCATIONS-1)))
+				else
 				{
-					nextLocation = i;
-					lowestDistance = distance;
+					int locationReferenceDifference = i - currentLocation;
+					// Checks if the location is closer than the previously noted location.
+					if (distance < lowestDistance && (locationReferenceDifference == 1 || locationReferenceDifference == -(MAX_LOCATIONS-1)))
+					{
+						nextLocation = i;
+						lowestDistance = distance;
+					}
 				}
 			}
 		}
 	}
+
 	allianceX = movementLocations[nextLocation].x;
 	allianceY = movementLocations[nextLocation].y;
 	moveToLocation(allianceX,allianceY); // Takes the x and y of an area and moves to that location. Replace with your own move to location method
@@ -639,6 +694,60 @@ void communicate_with_server()
 	int  j;
 	int  rc;
 
+
+	char recvStructure[MAX_BUFFER_SIZE];
+	char sendStructure[MAX_BUFFER_SIZE];
+
+	WSADATA wsaData;
+	char name[255];
+	char ip[30];
+	PHOSTENT hostinfo;
+
+	// Gets the bots ip address
+	if( gethostname ( name, sizeof(name)) == 0)
+	{
+		if((hostinfo = gethostbyname(name)) != NULL)
+		{
+			strcpy(ip,inet_ntoa (*(struct in_addr *)*hostinfo->h_addr_list));
+		}
+	}
+
+	strcat(sendStructure, ip);
+
+	if (isLeader)
+	{
+		strcat(recvStructure," %d, %d, %d, %d");
+		strcat(sendStructure," %d, %d, %d, %d, %d, %d");
+
+		for (int i = 0; i < MAX_ALLIES; i++)
+		{
+			strcat(allyShipArray[i].recvDataStruct, recvStructure);
+			allyShipArray[i].recvBufSize = 4;
+		}
+	}else
+	{
+		for (int i = 0; i < MAX_ALLIES; i++)
+		{
+			if (i == 0)
+			{
+				strcat(allyShipArray[i].recvDataStruct, " %d, %d, %d, %d, %d, %d");
+				allyShipArray[i].recvBufSize = 6;
+			}
+			else
+			{
+				strcat(allyShipArray[i].recvDataStruct, " %d, %d, %d, %d");
+				allyShipArray[i].recvBufSize = 4;
+			}
+
+		}
+		strcat(sendStructure," %d, %d, %d, %d");
+	}
+
+
+
+
+
+
 	sprintf_s(buffer, "Register  %s,%s,%s", STUDENT_NUMBER, STUDENT_FIRSTNAME, STUDENT_FAMILYNAME);
 	sendto(sock_send, buffer, strlen(buffer), 0, (SOCKADDR *)&sendto_addr, sizeof(SOCKADDR));
 
@@ -653,11 +762,11 @@ void communicate_with_server()
 			if ((strcmp(IP_ADDRESS_SERVER, "127.0.0.1") == 0) || strcmp(IP_ADDRESS_SERVER, p) == 0 || strcmp(JOSH_IP, p) == 0 || strcmp(BRYAN_IP, p) == 0 || strcmp(DOM_IP, p) == 0)
 			{
 				//Friend Format example: "S, x, y, health, number_of_ships"
-				if (sscanf_s(buffer,"K %d, %d, %d, %d", &allyShipArray[josh].x, &allyShipArray[josh].y, &allyShipArray[josh].health, &allyShipArray[josh].numberOfShips) == 4)
+				if (sscanf_s(buffer,allyShipArray[josh].recvDataStruct, &allyShipArray[josh].x, &allyShipArray[josh].y, &allyShipArray[josh].health, &allyShipArray[josh].numberOfShips,allianceX,allianceY) == allyShipArray[josh].recvBufSize)
 					allyShipArray[josh].distance = getDistance(myX,myY,allyShipArray[josh].x,allyShipArray[josh].y);
-				else if (sscanf_s(buffer,"O %d, %d, %d, %d", &allyShipArray[bryan].x, &allyShipArray[bryan].y, &allyShipArray[bryan].health, &allyShipArray[bryan].numberOfShips) == 4)
+				else if (sscanf_s(buffer,allyShipArray[bryan].recvDataStruct, &allyShipArray[bryan].x, &allyShipArray[bryan].y, &allyShipArray[bryan].health, &allyShipArray[bryan].numberOfShips,allianceX,allianceY) == allyShipArray[bryan].recvBufSize)
 					allyShipArray[bryan].distance = getDistance(myX,myY,allyShipArray[bryan].x,allyShipArray[bryan].y);
-				else if (sscanf_s(buffer,"Z %d, %d, %d, %d", &allyShipArray[dom].x, &allyShipArray[dom].y, &allyShipArray[dom].health, &allyShipArray[dom].numberOfShips) == 4)
+				else if (sscanf_s(buffer,allyShipArray[dom].recvDataStruct, &allyShipArray[dom].x, &allyShipArray[dom].y, &allyShipArray[dom].health, &allyShipArray[dom].numberOfShips,allianceX,allianceY) == allyShipArray[dom].recvBufSize)
 					allyShipArray[dom].distance = getDistance(myX,myY,allyShipArray[dom].x,allyShipArray[dom].y);
 				else
 				{
@@ -721,7 +830,14 @@ void communicate_with_server()
 						setFlag = false;
 					}
 
-					sprintf_s(sendBuffer, "T %d, %d, %d, %d, %d, %d",myX,myY,myHealth,number_of_ships,allianceX,allianceY);
+
+					if (isLeader)
+					{
+						sprintf_s(sendBuffer, sendStructure,myX,myY,myHealth,number_of_ships,allianceX,allianceY);
+					}
+					else
+						sprintf_s(sendBuffer, sendStructure,myX,myY,myHealth,number_of_ships);
+
 
 					// Send data to team mates
 					for (int i = 0; i < MAX_ALLIES; i++)
@@ -763,6 +879,8 @@ void set_new_flag(int newFlag)
 	new_flag = newFlag;
 }
 
+
+
 int _tmain(int argc, _TCHAR* argv[])
 {
 	char chr = '\0';
@@ -789,8 +907,6 @@ int _tmain(int argc, _TCHAR* argv[])
 	allyIPArray[josh] = JOSH_IP; // Josh
 	allyIPArray[bryan] = BRYAN_IP; // Bryan
 	allyIPArray[dom] = DOM_IP; // Dom
-	movementLocationsetup();
-	setupAllyAddressData();
 
 	// Setup port to recieve
 	memset(&receive_addr, 0, sizeof(SOCKADDR_IN));
@@ -800,6 +916,18 @@ int _tmain(int argc, _TCHAR* argv[])
 
 	int ret = bind(sock_recv, (SOCKADDR *)&receive_addr, sizeof(SOCKADDR));
 	if (ret) printf("Bind failed! %d\n", WSAGetLastError());  
+
+	// Sets wether the bot is a leader or a soldier
+	printf("Input your bot ID: ");
+	std::cin >> botID;
+
+	if (strcmp(botID,"0"))
+		isLeader = true;
+	else
+		isLeader=false;
+
+	movementLocationsetup();
+	setupAllyAddressData();
 
 	communicate_with_server();
 
